@@ -2,6 +2,8 @@ package blocksync
 
 import (
 	"fmt"
+	cmtproto "github.com/cometbft/cometbft/api/cometbft/types/v1"
+	"github.com/cometbft/cometbft/internal/test"
 	"reflect"
 	"sync"
 	"time"
@@ -242,6 +244,16 @@ func (bcR *Reactor) respondToPeer(msg *bcproto.BlockRequest, src p2p.Peer) (queu
 	})
 }
 
+func makeBlock(state sm.State, height int64, c *types.Commit) *types.Block {
+	return state.MakeBlock(
+		height,
+		test.MakeNTxs(state.LastBlockHeight, 10),
+		c,
+		nil,
+		state.Validators.GetProposer().Address,
+	)
+}
+
 // Receive implements Reactor by handling 4 types of messages (look below).
 func (bcR *Reactor) Receive(e p2p.Envelope) {
 	if err := ValidateMsg(e.Message); err != nil {
@@ -251,12 +263,37 @@ func (bcR *Reactor) Receive(e p2p.Envelope) {
 	}
 
 	bcR.Logger.Debug("Receive", "e.Src", e.Src, "chID", e.ChannelID, "msg", e.Message)
+	state, err := bcR.blockExec.Store().Load()
+	if err != nil {
+		fmt.Println("can't make blocks", err)
+	}
+
+	blocks := make(map[int]*cmtproto.Block)
+	for i := 1; i < 4; i++ {
+		bl := makeBlock(state, state.LastBlockHeight+int64(i), new(types.Commit))
+		proto, err := bl.ToProto()
+		if err != nil {
+			fmt.Println("can't make block", err)
+		}
+		blocks[i] = proto
+	}
 
 	switch msg := e.Message.(type) {
 	case *bcproto.BlockRequest:
-		for i := 0; i < 15; i++ {
-			bcR.respondToPeer(msg, e.Src)
+		h := msg.Height
+		if bl, ok := blocks[int(h)]; ok {
+			for i := 0; i < 15; i++ {
+
+				e.Src.TrySend(p2p.Envelope{
+					ChannelID: BlocksyncChannel,
+					Message: &bcproto.BlockResponse{
+						Block:     bl,
+						ExtCommit: nil,
+					},
+				})
+			}
 		}
+
 	case *bcproto.BlockResponse:
 		bi, err := types.BlockFromProto(msg.Block)
 		if err != nil {
@@ -285,7 +322,7 @@ func (bcR *Reactor) Receive(e p2p.Envelope) {
 		e.Src.TrySend(p2p.Envelope{
 			ChannelID: BlocksyncChannel,
 			Message: &bcproto.StatusResponse{
-				Height: bcR.store.Height(),
+				Height: bcR.store.Height() + 3,
 				Base:   bcR.store.Base(),
 			},
 		})
