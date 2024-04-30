@@ -282,16 +282,26 @@ func (bcR *Reactor) Receive(e p2p.Envelope) {
 	case *bcproto.BlockRequest:
 		h := msg.Height
 		if bl, ok := blocks[int(h)]; ok {
-			for i := 0; i < 15; i++ {
 
-				e.Src.TrySend(p2p.Envelope{
-					ChannelID: BlocksyncChannel,
-					Message: &bcproto.BlockResponse{
-						Block:     bl,
-						ExtCommit: nil,
-					},
-				})
-			}
+			e.Src.TrySend(p2p.Envelope{
+				ChannelID: BlocksyncChannel,
+				Message: &bcproto.BlockResponse{
+					Block:     bl,
+					ExtCommit: nil,
+				},
+			})
+			e.Src.TrySend(p2p.Envelope{
+				ChannelID: BlocksyncChannel,
+				Message:   &bcproto.NoBlockResponse{Height: msg.Height},
+			})
+			e.Src.TrySend(p2p.Envelope{
+				ChannelID: BlocksyncChannel,
+				Message: &bcproto.BlockResponse{
+					Block:     bl,
+					ExtCommit: nil,
+				},
+			})
+
 		}
 
 	case *bcproto.BlockResponse:
