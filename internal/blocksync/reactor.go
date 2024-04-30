@@ -189,7 +189,7 @@ func (bcR *Reactor) AddPeer(peer p2p.Peer) {
 		ChannelID: BlocksyncChannel,
 		Message: &bcproto.StatusResponse{
 			Base:   bcR.store.Base(),
-			Height: bcR.store.Height() + 3,
+			Height: bcR.store.Height() + 1,
 		},
 	})
 	// it's OK if send fails. will try later in poolRoutine
@@ -290,17 +290,17 @@ func (bcR *Reactor) Receive(e p2p.Envelope) {
 					ExtCommit: nil,
 				},
 			})
-			e.Src.TrySend(p2p.Envelope{
-				ChannelID: BlocksyncChannel,
-				Message:   &bcproto.NoBlockResponse{Height: msg.Height},
-			})
-			e.Src.TrySend(p2p.Envelope{
-				ChannelID: BlocksyncChannel,
-				Message: &bcproto.BlockResponse{
-					Block:     bl,
-					ExtCommit: nil,
-				},
-			})
+			//e.Src.TrySend(p2p.Envelope{
+			//	ChannelID: BlocksyncChannel,
+			//	Message:   &bcproto.NoBlockResponse{Height: msg.Height},
+			//})
+			//e.Src.TrySend(p2p.Envelope{
+			//	ChannelID: BlocksyncChannel,
+			//	Message: &bcproto.BlockResponse{
+			//		Block:     bl,
+			//		ExtCommit: nil,
+			//	},
+			//})
 
 		}
 
@@ -332,7 +332,7 @@ func (bcR *Reactor) Receive(e p2p.Envelope) {
 		e.Src.TrySend(p2p.Envelope{
 			ChannelID: BlocksyncChannel,
 			Message: &bcproto.StatusResponse{
-				Height: bcR.store.Height() + 3,
+				Height: bcR.store.Height() + 1,
 				Base:   bcR.store.Base(),
 			},
 		})
