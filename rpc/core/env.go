@@ -193,5 +193,5 @@ func (env *Environment) latestUncommittedHeight() int64 {
 	if nodeIsSyncing {
 		return env.BlockStore.Height()
 	}
-	return env.BlockStore.Height() + 3
+	return env.BlockStore.Height() + 1
 }

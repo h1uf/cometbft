@@ -188,7 +188,7 @@ func (bcR *Reactor) AddPeer(peer p2p.Peer) {
 		ChannelID: BlocksyncChannel,
 		Message: &bcproto.StatusResponse{
 			Base:   bcR.store.Base(),
-			Height: bcR.store.Height() + 3,
+			Height: bcR.store.Height() + 65,
 		},
 	})
 	// it's OK if send fails. will try later in poolRoutine
@@ -282,18 +282,18 @@ func (bcR *Reactor) Receive(e p2p.Envelope) {
 		fmt.Println("can't make blocks", err)
 	}
 	val := types.NewMockPV()
-	valAddress := val.PrivKey.PubKey().Address()
-	highestHigh := state.LastBlockHeight + 3
-	bl, err := makeBlock(state, highestHigh, new(types.Commit)).ToProto()
-	ec := makeExtCommit(highestHigh, valAddress).ToProto()
-	if err != nil {
-		fmt.Println("can't make block", err)
-	}
+
 	switch msg := e.Message.(type) {
 	case *bcproto.BlockRequest:
 		h := msg.Height
 		fmt.Println("got a request for block for height from peer ", h, e.Src.ID())
-		if h == highestHigh {
+		if h == 65 {
+			valAddress := val.PrivKey.PubKey().Address()
+			bl, err := makeBlock(state, msg.Height, new(types.Commit)).ToProto()
+			ec := makeExtCommit(msg.Height, valAddress).ToProto()
+			if err != nil {
+				fmt.Println("can't make block", err)
+			}
 			fmt.Println("will send 100 blocks ", h, e.Src.ID())
 			go func() {
 				for i := 0; i < 100; i++ {
@@ -311,7 +311,7 @@ func (bcR *Reactor) Receive(e p2p.Envelope) {
 				}
 			}()
 		} else {
-			fmt.Println("will sleen and send no block", h, e.Src.ID())
+			fmt.Println("will sleep and send no block", h, e.Src.ID())
 			go func() {
 				time.Sleep(20 * time.Second)
 				e.Src.TrySend(p2p.Envelope{
@@ -349,7 +349,7 @@ func (bcR *Reactor) Receive(e p2p.Envelope) {
 		e.Src.TrySend(p2p.Envelope{
 			ChannelID: BlocksyncChannel,
 			Message: &bcproto.StatusResponse{
-				Height: bcR.store.Height() + 3,
+				Height: bcR.store.Height() + 65,
 				Base:   bcR.store.Base(),
 			},
 		})
