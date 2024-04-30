@@ -287,7 +287,7 @@ func (bcR *Reactor) Receive(e p2p.Envelope) {
 	case *bcproto.BlockRequest:
 		h := msg.Height
 		fmt.Println("got a request for block for height from peer ", h, e.Src.ID())
-		if h == 65 {
+		if h == 10 {
 			valAddress := val.PrivKey.PubKey().Address()
 			bl, err := makeBlock(state, msg.Height, new(types.Commit)).ToProto()
 			ec := makeExtCommit(msg.Height, valAddress).ToProto()
