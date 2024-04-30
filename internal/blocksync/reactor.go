@@ -313,7 +313,7 @@ func (bcR *Reactor) Receive(e p2p.Envelope) {
 		} else {
 			fmt.Println("will sleep and send no block", h, e.Src.ID())
 			go func() {
-				time.Sleep(20 * time.Second)
+				time.Sleep(10 * time.Second)
 				e.Src.TrySend(p2p.Envelope{
 					ChannelID: BlocksyncChannel,
 					Message:   &bcproto.NoBlockResponse{Height: msg.Height},
