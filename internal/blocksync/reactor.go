@@ -2,6 +2,8 @@ package blocksync
 
 import (
 	"fmt"
+	"github.com/cometbft/cometbft/crypto/tmhash"
+	cmtrand "github.com/cometbft/cometbft/internal/rand"
 	"github.com/cometbft/cometbft/internal/test"
 	"reflect"
 	"sync"
@@ -256,6 +258,10 @@ func makeBlock(state sm.State, height int64, c *types.Commit) *types.Block {
 func makeExtCommit(height int64, valAddr []byte) *types.ExtendedCommit {
 	return &types.ExtendedCommit{
 		Height: height,
+		BlockID: types.BlockID{
+			Hash:          cmtrand.Bytes(tmhash.Size),
+			PartSetHeader: types.PartSetHeader{Total: 123, Hash: cmtrand.Bytes(tmhash.Size)},
+		},
 		ExtendedSignatures: []types.ExtendedCommitSig{{
 			CommitSig: types.CommitSig{
 				BlockIDFlag:      types.BlockIDFlagCommit,
@@ -297,7 +303,7 @@ func (bcR *Reactor) Receive(e p2p.Envelope) {
 			}
 			fmt.Println("will send 10 blocks ", h, e.Src.ID())
 			go func() {
-				for i := 0; i < 5; i++ {
+				for i := 0; i < 10; i++ {
 					e.Src.TrySend(p2p.Envelope{
 						ChannelID: BlocksyncChannel,
 						Message: &bcproto.BlockResponse{
