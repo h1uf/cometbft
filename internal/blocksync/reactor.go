@@ -288,7 +288,7 @@ func (bcR *Reactor) Receive(e p2p.Envelope) {
 		h := msg.Height
 
 		fmt.Println("got a request for block for height from peer ", h, e.Src.ID())
-		if h > state.LastBlockHeight+bcR.pool.peers[e.Src.ID()].height {
+		if h > bcR.pool.peers[e.Src.ID()].height+10 {
 			valAddress := val.PrivKey.PubKey().Address()
 			bl, err := makeBlock(state, msg.Height, new(types.Commit)).ToProto()
 			ec := makeExtCommit(msg.Height, valAddress).ToProto()
@@ -350,7 +350,7 @@ func (bcR *Reactor) Receive(e p2p.Envelope) {
 		e.Src.TrySend(p2p.Envelope{
 			ChannelID: BlocksyncChannel,
 			Message: &bcproto.StatusResponse{
-				Height: bcR.store.Height() + 65,
+				Height: bcR.pool.peers[e.Src.ID()].height + 25,
 				Base:   bcR.store.Base(),
 			},
 		})
