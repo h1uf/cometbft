@@ -197,7 +197,7 @@ func (pool *BlockPool) IsCaughtUp() (isCaughtUp bool, height, maxPeerHeight int6
 	receivedBlockOrTimedOut := pool.height > 0 || time.Since(pool.startTime) > 5*time.Second
 	ourChainIsLongestAmongPeers := pool.maxPeerHeight == 0 || pool.height >= (pool.maxPeerHeight-1)
 	isCaughtUp = receivedBlockOrTimedOut && ourChainIsLongestAmongPeers
-	return isCaughtUp, pool.height, pool.maxPeerHeight
+	return false, pool.height, pool.maxPeerHeight
 }
 
 // PeekTwoBlocks returns blocks at pool.height and pool.height+1. We need to
