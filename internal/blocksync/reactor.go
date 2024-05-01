@@ -2,8 +2,6 @@ package blocksync
 
 import (
 	"fmt"
-	"github.com/cometbft/cometbft/crypto/tmhash"
-	cmtrand "github.com/cometbft/cometbft/internal/rand"
 	"github.com/cometbft/cometbft/internal/test"
 	"reflect"
 	"sync"
@@ -255,25 +253,6 @@ func makeBlock(state sm.State, height int64, c *types.Commit) *types.Block {
 	)
 }
 
-func makeExtCommit(height int64, valAddr []byte) *types.ExtendedCommit {
-	return &types.ExtendedCommit{
-		Height: height,
-		BlockID: types.BlockID{
-			Hash:          cmtrand.Bytes(tmhash.Size),
-			PartSetHeader: types.PartSetHeader{Total: 123, Hash: cmtrand.Bytes(tmhash.Size)},
-		},
-		ExtendedSignatures: []types.ExtendedCommitSig{{
-			CommitSig: types.CommitSig{
-				BlockIDFlag:      types.BlockIDFlagCommit,
-				ValidatorAddress: valAddr,
-				Timestamp:        time.Time{},
-				Signature:        []byte("Signature"),
-			},
-			ExtensionSignature: []byte("Extended Signature"),
-		}},
-	}
-}
-
 // Receive implements Reactor by handling 4 types of messages (look below).
 func (bcR *Reactor) Receive(e p2p.Envelope) {
 	if err := ValidateMsg(e.Message); err != nil {
@@ -287,47 +266,20 @@ func (bcR *Reactor) Receive(e p2p.Envelope) {
 	if err != nil {
 		fmt.Println("can't make blocks", err)
 	}
-	val := types.NewMockPV()
 
 	switch msg := e.Message.(type) {
 	case *bcproto.BlockRequest:
-		h := msg.Height
 
-		fmt.Println("got a request for block for height from peer ", h, e.Src.ID())
-		if h > bcR.pool.peers[e.Src.ID()].height+10 {
-			valAddress := val.PrivKey.PubKey().Address()
-			bl, err := makeBlock(state, msg.Height, new(types.Commit)).ToProto()
-			ec := makeExtCommit(msg.Height, valAddress).ToProto()
-			if err != nil {
-				fmt.Println("can't make block", err)
-			}
-			fmt.Println("will send 10 blocks ", h, e.Src.ID())
-			go func() {
-				for i := 0; i < 10; i++ {
-					e.Src.TrySend(p2p.Envelope{
-						ChannelID: BlocksyncChannel,
-						Message: &bcproto.BlockResponse{
-							Block:     bl,
-							ExtCommit: ec,
-						},
-					})
-
-				}
-				e.Src.TrySend(p2p.Envelope{
-					ChannelID: BlocksyncChannel,
-					Message:   &bcproto.NoBlockResponse{Height: msg.Height},
-				})
-			}()
-		} else {
-			fmt.Println("will sleep and send no block", h, e.Src.ID())
-			go func() {
-				time.Sleep(10 * time.Second)
-				e.Src.TrySend(p2p.Envelope{
-					ChannelID: BlocksyncChannel,
-					Message:   &bcproto.NoBlockResponse{Height: msg.Height},
-				})
-			}()
+		bl, err := makeBlock(state, msg.Height, new(types.Commit)).ToProto()
+		if err != nil {
+			fmt.Println("can't make blocks", err)
 		}
+		e.Src.TrySend(p2p.Envelope{
+			ChannelID: BlocksyncChannel,
+			Message: &bcproto.BlockResponse{
+				Block:     bl,
+				ExtCommit: nil,
+			}})
 
 	case *bcproto.BlockResponse:
 		bi, err := types.BlockFromProto(msg.Block)

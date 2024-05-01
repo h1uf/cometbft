@@ -1,7 +1,7 @@
 # Makefile for the "localnode" docker image.
 
 all:
-	docker buildx build --platform linux/amd64 --tag cometbft/localnode_evil localnode
+	docker buildx build --platform linux/amd64 --tag cometbft/localnode_evil_1 localnode
 
 .PHONY: all
 
