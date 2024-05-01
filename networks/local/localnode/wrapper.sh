@@ -3,7 +3,7 @@
 ##
 ## Input parameters
 ##
-BINARY=/cometbft/${BINARY:-cometbft_evil}
+BINARY=/cometbft/${BINARY:-cometbft_evil_1}
 ID=${ID:-0}
 LOG=${LOG:-cometbft.log}
 
