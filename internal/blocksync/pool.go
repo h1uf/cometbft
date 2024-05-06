@@ -164,9 +164,12 @@ func (pool *BlockPool) removeTimedoutPeers() {
 					"curRate", fmt.Sprintf("%d KB/s", curRate/1024),
 					"minRate", fmt.Sprintf("%d KB/s", minRecvRate/1024))
 				peer.didTimeout = true
+				fmt.Println("peer to ", peer.id)
 			}
 
 			peer.curRate = curRate
+			fmt.Println("new peers' rate ", peer.id, peer.curRate)
+
 		}
 
 		if peer.didTimeout {
@@ -320,6 +323,7 @@ func (pool *BlockPool) AddBlock(peerID p2p.ID, block *types.Block, extCommit *ty
 
 	peer := pool.peers[peerID]
 	if peer != nil {
+		fmt.Printf("got a block from %s and about to decrease \n", peerID)
 		peer.decrPending(blockSize)
 	}
 
@@ -417,7 +421,7 @@ func (pool *BlockPool) updateMaxPeerHeight() {
 func (pool *BlockPool) pickIncrAvailablePeer(height int64, excludePeerID p2p.ID) *bpPeer {
 	pool.mtx.Lock()
 	defer pool.mtx.Unlock()
-
+	fmt.Println("first available peer", pool.sortedPeers[0].id)
 	for _, peer := range pool.sortedPeers {
 		if peer.id == excludePeerID {
 			continue
@@ -551,6 +555,7 @@ func (peer *bpPeer) incrPending() {
 
 func (peer *bpPeer) decrPending(recvSize int) {
 	peer.numPending--
+	fmt.Println("new num pending for peer", peer.id, peer.numPending)
 	if peer.numPending == 0 {
 		peer.timeout.Stop()
 	} else {
@@ -567,6 +572,7 @@ func (peer *bpPeer) onTimeout() {
 	peer.pool.sendError(err, peer.id)
 	peer.logger.Error("SendTimeout", "reason", err, "timeout", peerTimeout)
 	peer.didTimeout = true
+	fmt.Println("peer to 2 ", peer.id)
 }
 
 // -------------------------------------
@@ -735,7 +741,7 @@ PICK_PEER_LOOP:
 	bpr.mtx.Lock()
 	bpr.peerID = peer.id
 	bpr.mtx.Unlock()
-
+	fmt.Println("sending request to peer ", peer.id)
 	bpr.pool.sendRequest(bpr.height, peer.id)
 }
 
@@ -751,14 +757,17 @@ func (bpr *bpRequester) pickSecondPeerAndSendRequest() (picked bool) {
 	bpr.mtx.Unlock()
 
 	secondPeer := bpr.pool.pickIncrAvailablePeer(bpr.height, peerID)
+
 	if secondPeer != nil {
 		bpr.mtx.Lock()
 		bpr.secondPeerID = secondPeer.id
 		bpr.mtx.Unlock()
+		fmt.Println("sending request to peer ", secondPeer.id)
 
 		bpr.pool.sendRequest(bpr.height, secondPeer.id)
 		return true
 	}
+	fmt.Println("couldn't pick second peer")
 
 	return false
 }
@@ -805,9 +814,11 @@ OUTER_LOOP:
 					continue OUTER_LOOP
 				}
 			case peerID := <-bpr.redoCh:
+				fmt.Println("redoing")
 				if bpr.didRequestFrom(peerID) {
 					removedBlock := bpr.reset(peerID)
 					if removedBlock {
+						fmt.Println("removed block")
 						gotBlock = false
 					}
 				}
@@ -832,6 +843,7 @@ OUTER_LOOP:
 				}
 			case <-bpr.gotBlockCh:
 				gotBlock = true
+				fmt.Println("got a block")
 				// We got a block!
 				// Continue the for-loop and wait til Quit.
 			}
